@@ -33,16 +33,3 @@ fun HomeView(navController: NavHostController, vm: PhotoViewModel) {
         }
     }
 }
-
-@Composable
-fun PhotoRaw(photo: PhotoItem) {
-    Row(modifier = Modifier.fillMaxWidth()) {
-        Image(
-            painter = rememberImagePainter(
-                data  = Uri.parse(photo.uri.toString())
-            ),
-            contentDescription = ""
-        )
-        Text(text = photo.title)
-    }
-}
