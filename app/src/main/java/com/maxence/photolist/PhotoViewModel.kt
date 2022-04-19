@@ -13,20 +13,7 @@ import java.util.concurrent.ExecutorService
 
 class PhotoViewModel(val application: Application): ViewModel() {
 
-    companion object {
-        fun provideFactory(application: Application): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return PhotoViewModel(application) as T
-            }
-        }
-    }
-
-    init {
-        getOutputDirectory()
-    }
-
-    private var outputDirectory: File = File("")
+    var outputDirectory: File = setOutputDirectory()
     private lateinit var photoUri: Uri
 
     private var shouldShowPhoto: MutableState<Boolean> = mutableStateOf(false)
