@@ -1,38 +1,46 @@
 package com.maxence.photolist
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Camera
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.maxence.photolist.ui.theme.redPink
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
+@OptIn(DelicateCoroutinesApi::class)
 @Composable
-fun NavComponent() {
+fun NavComponent(viewModel: PhotoViewModel) {
     val navController = rememberNavController()
-    val context = LocalContext.current
 
-    val model : PhotoViewModel = viewModel(factory = PhotoViewModel.provideFactory())
+    lateinit var cameraExecutor: ExecutorService
+    viewModel.fetchPhotos()
 
     val scaffoldState: ScaffoldState = rememberScaffoldState(
         snackbarHostState = SnackbarHostState()
     )
+
     Scaffold(
         scaffoldState = scaffoldState,
         topBar = {
@@ -56,16 +64,30 @@ fun NavComponent() {
                     modifier = Modifier
                         .size(32.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFFe05657)),
+                        .background(redPink),
                     onClick = { navController.navigate("takePicture") }) {
-                    Icon(Icons.Filled.Add, "", tint = Color.White)
+                    Icon(Icons.Filled.Camera, "", tint = Color.White)
                 }
             }
         },
         content = {
             NavHost(navController = navController, startDestination = "home") {
-                composable("home") { HomeView(navController, model) }
-                composable("takepicture") { TakePictureView(navController, model) }
+                composable("home") { HomeScreen(navController, viewModel) }
+                composable("takepicture") {
+                    cameraExecutor = Executors.newSingleThreadExecutor()
+                    CameraView(viewModel.outputDirectory, cameraExecutor,
+                        onImageCaptured = {
+                            viewModel.handleImageCapture(it)
+                            viewModel.fetchPhotos()
+                            GlobalScope.launch(Dispatchers.Main) {
+                                navController.popBackStack()
+                            }
+                    }
+                ) { Log.e("PhotoList", "View error:", it) } }
+                composable("detail/{id}") { backStackEntry ->
+                    val photoId = backStackEntry.arguments?.getString("id")
+                    DetailScreen(photoId!!, viewModel)
+                }
             }
         },
         backgroundColor = Color(0xFFE1E2E1),
